@@ -24,6 +24,11 @@ export class CameraRig {
     this.currentUp = new THREE.Vector3(0, 1, 0);
     this.targetUp = new THREE.Vector3(0, 1, 0);
 
+    // Screen-right / screen-forward projected onto the player's movement
+    // plane. Refreshed each frame from camera.matrixWorld after lookAt.
+    this.screenRight = new THREE.Vector3(1, 0, 0);
+    this.screenForward = new THREE.Vector3(0, 0, -1);
+
     // Reference frame (yaw=0 direction) anchored to player's forward.
     // We rotate the frame with the up vector during gravity shifts.
     this.frameRight = new THREE.Vector3(1, 0, 0);
@@ -57,17 +62,6 @@ export class CameraRig {
     this.pitch = Math.max(this.minPitch, Math.min(this.maxPitch, this.pitch));
   }
 
-  /** Direction the camera is looking, projected onto the player's horizontal plane. */
-  getForwardOnPlane() {
-    // forward = frameForward rotated by yaw around currentUp
-    const q = new THREE.Quaternion().setFromAxisAngle(this.currentUp, this.yaw);
-    const fwd = this.frameForward.clone().applyQuaternion(q);
-    // Project onto plane perpendicular to up
-    const along = fwd.dot(this.currentUp);
-    fwd.addScaledVector(this.currentUp, -along).normalize();
-    return fwd;
-  }
-
   update(playerPos, dt) {
     // Slerp current up toward target up (visual smoothing)
     const slerpRate = 1 - Math.exp(-dt * 8);
@@ -92,5 +86,20 @@ export class CameraRig {
     this.camera.position.copy(playerPos).add(offset);
     this.camera.up.copy(up);
     this.camera.lookAt(playerPos);
+    this.camera.updateMatrixWorld(true);
+
+    // Read screen basis directly from the camera matrix (column 0 = camera
+    // local +X = screen right; column 2 = camera local +Z = screen back).
+    // This guarantees the movement keys match what the user actually sees,
+    // independent of any cross-product sign mistake.
+    const tmp = new THREE.Vector3();
+    this.camera.matrixWorld.extractBasis(this.screenRight, tmp, this.screenForward);
+    this.screenForward.negate(); // local -Z is "into the screen"
+
+    // Project both onto plane perpendicular to up
+    const upAlongR = this.screenRight.dot(up);
+    this.screenRight.addScaledVector(up, -upAlongR).normalize();
+    const upAlongF = this.screenForward.dot(up);
+    this.screenForward.addScaledVector(up, -upAlongF).normalize();
   }
 }
