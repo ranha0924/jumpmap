@@ -12,7 +12,6 @@ export class HUD {
     this.elAxis = document.getElementById('gravity-axis');
     this.elShifts = document.getElementById('shifts-remaining');
     this.elToast = document.getElementById('checkpoint-toast');
-    this.elGravOverlay = document.getElementById('gravity-mode-overlay');
     this.elGoal = document.getElementById('goal-toast');
     this._toastTimer = null;
   }
@@ -44,10 +43,6 @@ export class HUD {
     this._toastTimer = setTimeout(() => {
       this.elToast.classList.remove('visible');
     }, durationMs);
-  }
-
-  setGravityModeVisible(v) {
-    this.elGravOverlay.classList.toggle('hidden', !v);
   }
 
   showGoal() {

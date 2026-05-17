@@ -8,8 +8,6 @@ import { HUD } from './ui/HUD.js';
 import { Input } from './input.js';
 import { LEVELS } from './levels/levels.js';
 
-const SLOW_FACTOR = 0.18;
-
 class Game {
   constructor() {
     this.canvas = document.getElementById('game');
@@ -27,8 +25,6 @@ class Game {
 
     this.currentLevelIndex = 0;
     this.elapsed = 0;
-    this.timeScale = 1.0;
-    this.timeScaleTarget = 1.0;
     this.bestTimes = this._loadBestTimes();
 
     this.cleared = false;
@@ -116,23 +112,10 @@ class Game {
 
     this.input.onPause = () => this._togglePause();
 
-    this.input.onGravityModeEnter = () => {
-      this.timeScaleTarget = SLOW_FACTOR;
-      this.hud.setGravityModeVisible(true);
-    };
-
-    this.input.onGravityModeExit = (intent) => {
-      this.timeScaleTarget = 1.0;
-      this.hud.setGravityModeVisible(false);
-      if (!intent) return;
-      const newDir = this._intentToWorldAxis(intent);
-      if (!newDir) return;
-      const ok = this.gravity.trySetDirection(newDir);
-      if (ok) {
-        this.hud.toast('중력 전환!');
-      } else if (this.gravity.shiftsRemaining === 0) {
-        this.hud.toast('전환 횟수 소진');
-      }
+    this.input.onGravityToggle = () => {
+      if (this.cleared || this.paused) return;
+      const ok = this.gravity.toggle();
+      this.hud.toast(ok ? '↕ 중력 반전!' : '전환 횟수 소진');
     };
   }
 
@@ -142,29 +125,6 @@ class Game {
       this.hud.setShifts(this.gravity.shiftsRemaining);
       this.cameraRig.setGravityDirection(this.gravity.direction);
     });
-  }
-
-  /**
-   * Convert a camera-relative intent to a world axis-aligned gravity vector.
-   * Intent = which direction the *gravity vector* should point (i.e., where the
-   * player will fall toward).
-   */
-  _intentToWorldAxis(intent) {
-    const up = this.cameraRig.currentUp;
-    const fwd = this.cameraRig.getForwardOnPlane();
-    const right = new THREE.Vector3().crossVectors(fwd, up).normalize();
-
-    let v;
-    switch (intent) {
-      case 'forward': v = fwd; break;
-      case 'back':    v = fwd.clone().negate(); break;
-      case 'right':   v = right; break;
-      case 'left':    v = right.clone().negate(); break;
-      case 'up':      v = up.clone(); break;          // gravity → ceiling
-      case 'down':    v = up.clone().negate(); break; // gravity → floor (default)
-      default: return null;
-    }
-    return GravityController.snapToAxis(v);
   }
 
   _loadLevel(idx) {
@@ -320,17 +280,12 @@ class Game {
   }
 
   _tick(rawDt) {
-    // Smooth time scale (for slow-mo on gravity mode)
-    this.timeScale += (this.timeScaleTarget - this.timeScale) * Math.min(rawDt * 12, 1);
-
-    // Mouse always updates camera, even paused-menu shouldn't matter because we exit lock then
     const { dx, dy } = this.input.mouseDelta();
     if (!this.paused) this.cameraRig.addMouse(dx, dy);
 
     if (!this.paused) {
-      const dt = rawDt * this.timeScale;
+      const dt = rawDt;
 
-      // Player input (uses unsimulated camera forward to keep input responsive in slow-mo)
       const camFwd = this.cameraRig.getForwardOnPlane();
       this.player.applyInput(this.input.state, camFwd, this.gravity.direction, dt);
 
