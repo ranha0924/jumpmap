@@ -1,14 +1,16 @@
 /**
- * Level data. Coordinates are in world units (1 unit ≈ 1m).
- * box: { pos: [x,y,z], size: [w,h,d], type }
+ * Level data. All puzzles solvable with ±Y gravity only.
+ *
+ * box: { pos:[x,y,z], size:[w,h,d], type }
  * types: default, spawn, goal, hint, hazard, ceiling, wall
  *
- * Player sphere has radius 0.5. Default gravity is -Y.
+ * Player sphere radius is 0.5. Default gravity is -Y.
+ * Max jump height ≈ 2.5 units above the standing surface.
  */
 
 export const LEVELS = [
   // -------------------------------------------------------------------------
-  // STAGE 1-1: 첫 걸음 — 그냥 점프로 도착
+  // 1-1 · 첫 걸음 — no flip needed, learn movement/jump
   // -------------------------------------------------------------------------
   {
     id: '1-1',
@@ -17,16 +19,15 @@ export const LEVELS = [
     shiftLimit: Infinity,
     skyColor: 0x0a0a1e,
     boxes: [
-      { pos: [0, 0, 0], size: [6, 1, 6], type: 'spawn' },
-      { pos: [6, 0, 0], size: [4, 1, 4] },
-      { pos: [11, 0.5, 0], size: [3, 2, 3] },
-      { pos: [15, 1.5, 0], size: [3, 4, 3], type: 'goal' },
+      { pos: [0, 0, 0], size: [5, 1, 5], type: 'spawn' },
+      { pos: [5, 0.5, 0], size: [3, 2, 3] },         // top y=1.5
+      { pos: [9, 1, 0], size: [3, 3, 3], type: 'goal' }, // top y=2.5
     ],
-    goal: { pos: [15, 4.5, 0], radius: 0.9 },
+    goal: { pos: [9, 3.5, 0], radius: 0.9 },
   },
 
   // -------------------------------------------------------------------------
-  // STAGE 1-2: 첫 중력 전환 — 천장 도달
+  // 1-2 · 위가 아래다 — first flip, walk on the ceiling across a wall
   // -------------------------------------------------------------------------
   {
     id: '1-2',
@@ -34,111 +35,106 @@ export const LEVELS = [
     spawn: [0, 1.5, 0],
     shiftLimit: Infinity,
     boxes: [
-      { pos: [0, 0, 0], size: [6, 1, 6], type: 'spawn' },
-      // Tall wall — cannot jump over
+      { pos: [0, 0, 0], size: [5, 1, 5], type: 'spawn' },
+      // Tall wall blocking the way — top y=8 (well above jump height)
       { pos: [5, 4, 0], size: [1, 8, 6], type: 'wall' },
-      // Continuous ceiling spanning the whole stage (the new "floor" after flip)
-      { pos: [6, 10, 0], size: [20, 1, 6], type: 'ceiling' },
-      // Small goal accent patch on the ceiling beyond the wall (visual only)
-      { pos: [14, 9.6, 0], size: [3, 0.1, 3], type: 'goal' },
+      // Continuous ceiling overhead spanning the whole stage
+      { pos: [5, 11, 0], size: [18, 1, 6], type: 'ceiling' },
+      // Landing floor on the far side
+      { pos: [10, 0, 0], size: [5, 1, 5], type: 'goal' },
     ],
-    goal: { pos: [14, 8.0, 0], radius: 1.1 },
+    goal: { pos: [10, 1.5, 0], radius: 0.9 },
   },
 
   // -------------------------------------------------------------------------
-  // STAGE 1-3: 옆 벽이 바닥이다
+  // 1-3 · 더 높이 — flip up, walk over, flip down onto a too-tall pedestal
   // -------------------------------------------------------------------------
   {
     id: '1-3',
-    name: '1-3 · 옆 벽도 바닥',
+    name: '1-3 · 더 높이',
     spawn: [0, 1.5, 0],
     shiftLimit: Infinity,
     boxes: [
-      { pos: [0, 0, 0], size: [6, 1, 6], type: 'spawn' },
-      // Side wall to the right, will become floor when gravity → +X
-      { pos: [9, 4, 0], size: [1, 9, 6], type: 'wall' },
-      // Small goal patch at the top of the wall (visual marker)
-      { pos: [9, 8.6, 0], size: [1, 0.2, 3], type: 'goal' },
+      { pos: [0, 0, 0], size: [5, 1, 5], type: 'spawn' },
+      // Goal pedestal — top y=6, too high to jump from spawn (max ≈ 3.5)
+      { pos: [5, 3, 0], size: [3, 6, 3], type: 'goal' },
+      // Ceiling above the whole area — bottom y=9.5
+      { pos: [3, 10, 0], size: [11, 1, 5], type: 'ceiling' },
     ],
-    // Goal trigger at the wall's upper edge — reach it by rolling up the
-    // wall surface (i.e., shift gravity to +X so the wall becomes the floor)
-    goal: { pos: [8.3, 8.0, 0], radius: 1.0 },
+    goal: { pos: [5, 7.5, 0], radius: 1.0 },
   },
 
   // -------------------------------------------------------------------------
-  // STAGE 2-1: 콤보 - 점프 후 공중에서 전환
+  // 2-1 · 천장 다리 — long gap crossed via the ceiling
   // -------------------------------------------------------------------------
   {
     id: '2-1',
-    name: '2-1 · 공중 전환',
+    name: '2-1 · 천장 다리',
     spawn: [0, 1.5, 0],
-    shiftLimit: 4,
+    shiftLimit: Infinity,
     boxes: [
       { pos: [0, 0, 0], size: [5, 1, 5], type: 'spawn' },
-      { pos: [7, 2, 0], size: [3, 0.5, 3] },
-      // Side wall to roll along
-      { pos: [11, 4, 0], size: [0.8, 6, 3], type: 'wall' },
-      // High platform
-      { pos: [11, 8.5, 0], size: [3, 0.5, 3] },
-      // Far away goal — easier from the high platform
-      { pos: [16, 8.25, 0], size: [3, 1, 3], type: 'goal' },
+      // Goal island, unreachable by jump (gap is 10+ units wide)
+      { pos: [15, 0, 0], size: [5, 1, 5], type: 'goal' },
+      // Ceiling bridge connecting both sides — bottom y=9.5
+      { pos: [7.5, 10, 0], size: [22, 1, 5], type: 'ceiling' },
     ],
-    goal: { pos: [16, 9.5, 0], radius: 0.9 },
+    goal: { pos: [15, 1.5, 0], radius: 0.9 },
   },
 
   // -------------------------------------------------------------------------
-  // STAGE 2-2: 6면 큐브
+  // 2-2 · 양면 통로 — thread through alternating floor/ceiling obstacles
   // -------------------------------------------------------------------------
   {
     id: '2-2',
-    name: '2-2 · 큐브의 내부',
-    spawn: [0, -4, 0],
-    shiftLimit: 6,
-    skyColor: 0x1a0a2e,
-    boxes: (() => {
-      // Hollow cube walls (6 thin slabs) with goal on the ceiling (top wall)
-      const half = 6, t = 0.5;
-      return [
-        // Floor (spawn)
-        { pos: [0, -half - t / 2, 0], size: [half * 2, t, half * 2], type: 'spawn' },
-        // Ceiling
-        { pos: [0,  half + t / 2, 0], size: [half * 2, t, half * 2], type: 'ceiling' },
-        // -X wall
-        { pos: [-half - t / 2, 0, 0], size: [t, half * 2, half * 2], type: 'wall' },
-        // +X wall (with a hint patch where goal sits)
-        { pos: [ half + t / 2, 0, 0], size: [t, half * 2, half * 2], type: 'wall' },
-        // -Z wall
-        { pos: [0, 0, -half - t / 2], size: [half * 2, half * 2, t], type: 'wall' },
-        // +Z wall — goal patch
-        { pos: [0, 0,  half + t / 2], size: [half * 2, half * 2, t], type: 'goal' },
-        // Small floating obstacle in the middle for variety
-        { pos: [0, 0, 0], size: [2, 0.5, 2], type: 'hint' },
-      ];
-    })(),
-    goal: { pos: [0, 0, 5.5], radius: 0.9 },
+    name: '2-2 · 양면 통로',
+    spawn: [0, 1.5, 0],
+    shiftLimit: Infinity,
+    skyColor: 0x140a2a,
+    boxes: [
+      // Continuous floor through the corridor
+      { pos: [9, 0, 0], size: [22, 1, 4], type: 'spawn' },
+      // Continuous ceiling — bottom y=9.5
+      { pos: [9, 10, 0], size: [22, 1, 4], type: 'ceiling' },
+      // Ground obstacles (block the floor route)
+      { pos: [5, 2, 0], size: [1, 3, 4], type: 'wall' },
+      { pos: [11, 2, 0], size: [1, 3, 4], type: 'wall' },
+      // Ceiling stalactites (block the ceiling route, at different x's)
+      { pos: [8, 8, 0], size: [1, 3, 4], type: 'wall' },
+      { pos: [14, 8, 0], size: [1, 3, 4], type: 'wall' },
+      // Goal pad at the end (visual)
+      { pos: [18, 0.6, 0], size: [2, 0.2, 3], type: 'goal' },
+    ],
+    goal: { pos: [18, 1.5, 0], radius: 0.9 },
   },
 
   // -------------------------------------------------------------------------
-  // STAGE 3-1: 중력 미로 (제한된 전환)
+  // 3-1 · 반전 3회 — limited shifts, forced ceiling↔floor switching
   // -------------------------------------------------------------------------
   {
     id: '3-1',
-    name: '3-1 · 중력 미로',
+    name: '3-1 · 반전 3회',
     spawn: [0, 1.5, 0],
-    shiftLimit: 5,
+    shiftLimit: 3,
     skyColor: 0x14062a,
     boxes: [
-      { pos: [0, 0, 0], size: [4, 1, 4], type: 'spawn' },
-      // Vertical shaft going up — climb by gravity→up then surface change
-      { pos: [4, 2, 0], size: [0.5, 6, 4], type: 'wall' },     // right wall
-      { pos: [-4, 2, 0], size: [0.5, 6, 4], type: 'wall' },    // left wall
-      { pos: [0, 5.5, 0], size: [4, 0.5, 4], type: 'ceiling' },// top of shaft
-      // Horizontal tunnel along +Z at top
-      { pos: [0, 4.5, 4], size: [4, 0.5, 4] },                 // floor of tunnel
-      { pos: [0, 8.5, 4], size: [4, 0.5, 4], type: 'ceiling' },// roof of tunnel
-      // Goal pedestal at end of tunnel
-      { pos: [0, 5.25, 9], size: [4, 1, 3], type: 'goal' },
+      // Floor A — spawn
+      { pos: [0, 0, 0], size: [5, 1, 4], type: 'spawn' },
+      // Wall 1 — top y=7, unjumpable
+      { pos: [5, 3.5, 0], size: [1, 7, 4], type: 'wall' },
+      // Mid floor B — between the walls
+      { pos: [8, 0, 0], size: [5, 1, 4] },
+      // Wall 2
+      { pos: [11, 3.5, 0], size: [1, 7, 4], type: 'wall' },
+      // Ceiling segment 1 — covers spawn through past wall 1 (x = -2 to 7)
+      { pos: [2.5, 9.5, 0], size: [9, 1, 4], type: 'ceiling' },
+      // Gap in ceiling (x = 7 to 9) — forces a flip down onto floor B
+      // Ceiling segment 2 — covers past wall 2 (x = 9 to 14)
+      { pos: [11.5, 9.5, 0], size: [5, 1, 4], type: 'ceiling' },
+      // Goal pad embedded on ceiling 2 (visual marker for the target)
+      { pos: [12.5, 9.0, 0], size: [2, 0.1, 3], type: 'goal' },
     ],
-    goal: { pos: [0, 6.5, 9], radius: 0.9 },
+    // Goal triggers while rolling on ceiling 2 — no 4th flip needed
+    goal: { pos: [12.5, 8.5, 0], radius: 1.0 },
   },
 ];

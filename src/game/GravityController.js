@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 
 /**
- * Manages the global gravity vector and 6-direction switching.
- * Gravity is always axis-aligned (±X, ±Y, ±Z) per GDD.
+ * Manages the global gravity vector. Restricted to ±Y — Q toggles between
+ * "floor" mode (gravity points -Y) and "ceiling" mode (gravity points +Y).
  */
 export class GravityController {
-  constructor({ strength = 22 } = {}) {
+  constructor({ strength = 24 } = {}) {
     this.strength = strength;
     this.direction = new THREE.Vector3(0, -1, 0);
     this.vector = this.direction.clone().multiplyScalar(strength);
@@ -26,23 +26,11 @@ export class GravityController {
     this.shiftsRemaining = this.maxShifts;
   }
 
-  /**
-   * Snap an arbitrary vector to the nearest axis-aligned unit direction.
-   */
-  static snapToAxis(v) {
-    const ax = Math.abs(v.x), ay = Math.abs(v.y), az = Math.abs(v.z);
-    if (ax >= ay && ax >= az) return new THREE.Vector3(Math.sign(v.x) || 1, 0, 0);
-    if (ay >= ax && ay >= az) return new THREE.Vector3(0, Math.sign(v.y) || 1, 0);
-    return new THREE.Vector3(0, 0, Math.sign(v.z) || 1);
-  }
-
-  trySetDirection(dir) {
-    const snapped = GravityController.snapToAxis(dir);
-    // No-op if same direction (don't waste a charge)
-    if (snapped.equals(this.direction)) return false;
+  toggle() {
     if (this.shiftsRemaining <= 0) return false;
     this.shiftsRemaining = Math.max(0, this.shiftsRemaining - 1);
-    this.setDirection(snapped);
+    const flipped = new THREE.Vector3(0, -this.direction.y, 0);
+    this.setDirection(flipped);
     return true;
   }
 
@@ -58,9 +46,6 @@ export class GravityController {
   }
 
   axisLabel() {
-    const d = this.direction;
-    if (d.x !== 0) return d.x > 0 ? '+X' : '-X';
-    if (d.y !== 0) return d.y > 0 ? '+Y' : '-Y';
-    return d.z > 0 ? '+Z' : '-Z';
+    return this.direction.y > 0 ? '+Y' : '-Y';
   }
 }

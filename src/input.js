@@ -1,11 +1,7 @@
 /**
  * Keyboard + pointer-lock mouse input.
- * Exposes:
- *   state — { forward, back, left, right, jump, boost, gravityMode }
- *   gravityIntent() — Vector3-like {x,y,z} request based on keys held while Q is down
- *   mouseDelta() — consumed each frame
+ * Q taps toggle gravity. Space always jumps.
  */
-import * as THREE from 'three';
 
 export class Input {
   constructor(canvas) {
@@ -16,9 +12,7 @@ export class Input {
       back: false,
       left: false,
       right: false,
-      jump: false,
       boost: false,
-      gravityMode: false,
     };
     this._mouseDX = 0;
     this._mouseDY = 0;
@@ -27,11 +21,7 @@ export class Input {
     this.onJumpPressed = null;
     this.onRespawn = null;
     this.onPause = null;
-    this.onGravityModeEnter = null;
-    this.onGravityModeExit = null;
-    this.onGravityCommit = null; // called with a Vector3 axis
-
-    this._gravityPickedAxis = null; // remember last picked axis while Q held
+    this.onGravityToggle = null;
 
     this._bind();
   }
@@ -60,33 +50,18 @@ export class Input {
 
   _onKeyDown(e) {
     const code = e.code;
-    if (this.keys.has(code)) return; // ignore repeat
+    if (this.keys.has(code)) return; // ignore auto-repeat
     this.keys.add(code);
 
-    // Update movement state
     this._refreshMovementState();
 
-    // Gravity mode entry
-    if (code === 'KeyQ' && !this.state.gravityMode) {
-      this.state.gravityMode = true;
-      this._gravityPickedAxis = null;
-      this.onGravityModeEnter?.();
+    if (code === 'KeyQ') {
+      this.onGravityToggle?.();
       e.preventDefault();
       return;
     }
 
-    // While in gravity mode, capture direction keys to pick an axis
-    if (this.state.gravityMode) {
-      const axis = this._axisFromKey(code);
-      if (axis) {
-        this._gravityPickedAxis = axis;
-        e.preventDefault();
-        return;
-      }
-    }
-
-    // Jump (only outside gravity mode — Space inside picks gravity-up)
-    if (code === 'Space' && !this.state.gravityMode) {
+    if (code === 'Space') {
       this.onJumpPressed?.();
       e.preventDefault();
     }
@@ -96,15 +71,8 @@ export class Input {
   }
 
   _onKeyUp(e) {
-    const code = e.code;
-    this.keys.delete(code);
+    this.keys.delete(e.code);
     this._refreshMovementState();
-
-    if (code === 'KeyQ') {
-      this.state.gravityMode = false;
-      this.onGravityModeExit?.(this._gravityPickedAxis);
-      this._gravityPickedAxis = null;
-    }
   }
 
   _refreshMovementState() {
@@ -113,24 +81,6 @@ export class Input {
     this.state.left = this.keys.has('KeyA');
     this.state.right = this.keys.has('KeyD');
     this.state.boost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
-  }
-
-  /**
-   * Translate a key code (pressed while Q is held) into the gravity-local axis
-   * the player wants. We return a vector in **camera-relative** semantic terms
-   * (forward / right / up). The caller converts to world axes.
-   */
-  _axisFromKey(code) {
-    switch (code) {
-      case 'KeyW': return 'forward';
-      case 'KeyS': return 'back';
-      case 'KeyA': return 'left';
-      case 'KeyD': return 'right';
-      case 'Space': return 'up';
-      case 'ControlLeft':
-      case 'ControlRight': return 'down';
-      default: return null;
-    }
   }
 
   mouseDelta() {
