@@ -144,7 +144,10 @@ export class Player {
       fwd.sub(TMP_V2.copy(gravityDir).multiplyScalar(a));
     }
     fwd.normalize();
-    const right = TMP_V2.crossVectors(fwd, gravityDir).normalize();
+    // Screen-right = cross(forward, up) where up = -gravity. Using
+    // cross(gravity, forward) gives the same vector and keeps A/D mapped
+    // to the camera's screen-right regardless of which way gravity points.
+    const right = TMP_V2.crossVectors(gravityDir, fwd).normalize();
 
     const wishDir = TMP_V3.set(0, 0, 0);
     if (input.forward) wishDir.add(fwd);
