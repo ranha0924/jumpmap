@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
-import { Player } from './game/Player.js';
-import { GravityController } from './game/GravityController.js';
-import { CameraRig } from './game/CameraRig.js';
-import { LevelLoader } from './game/LevelLoader.js';
-import { HUD } from './ui/HUD.js';
-import { Input } from './input.js';
-import { LEVELS } from './levels/levels.js';
+import { Player } from './game/Player.js?v=4';
+import { GravityController } from './game/GravityController.js?v=4';
+import { CameraRig } from './game/CameraRig.js?v=4';
+import { LevelLoader } from './game/LevelLoader.js?v=4';
+import { HUD } from './ui/HUD.js?v=4';
+import { Input } from './input.js?v=4';
+import { LEVELS } from './levels/levels.js?v=4';
 
 class Game {
   constructor() {
@@ -143,6 +143,9 @@ class Game {
     this.cameraRig.frameForward.set(0, 0, -1);
     this.cameraRig.frameRight.set(1, 0, 0);
     this.cameraRig.yaw = 0;
+    // Prime the camera matrix so applyInput on the first tick has a valid
+    // screen basis (otherwise screenRight is the constructor default).
+    this.cameraRig.update(this.player.position, 1);
 
     this.hud.setStageName(level.name);
     this.hud.setGravity(this.gravity.axisLabel());
@@ -286,8 +289,13 @@ class Game {
     if (!this.paused) {
       const dt = rawDt;
 
-      const camFwd = this.cameraRig.getForwardOnPlane();
-      this.player.applyInput(this.input.state, camFwd, this.gravity.direction, dt);
+      this.player.applyInput(
+        this.input.state,
+        this.cameraRig.screenForward,
+        this.cameraRig.screenRight,
+        this.gravity.direction,
+        dt
+      );
 
       // Physics step
       this.player.step(dt, this.gravity.vector, this.levelLoader.platforms);

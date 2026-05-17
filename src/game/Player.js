@@ -129,25 +129,14 @@ export class Player {
   }
 
   /**
-   * Apply input as acceleration in the camera-relative horizontal plane,
-   * where "horizontal" is perpendicular to current gravity.
+   * Apply input as acceleration in the camera-relative horizontal plane.
+   * camForward and camRight come pre-projected onto the player's plane
+   * from CameraRig (derived from camera.matrixWorld so they always match
+   * what's actually on screen).
    */
-  applyInput(input, camForward, gravityDir, dt) {
-    // Project camera forward onto plane perpendicular to gravity
+  applyInput(input, camForward, camRight, gravityDir, dt) {
     const fwd = TMP_V1.copy(camForward);
-    const fwdAlong = fwd.dot(gravityDir);
-    fwd.sub(TMP_V2.copy(gravityDir).multiplyScalar(fwdAlong));
-    if (fwd.lengthSq() < 1e-6) {
-      // Camera looking straight along gravity; pick arbitrary perpendicular
-      fwd.set(1, 0, 0);
-      const a = fwd.dot(gravityDir);
-      fwd.sub(TMP_V2.copy(gravityDir).multiplyScalar(a));
-    }
-    fwd.normalize();
-    // Screen-right = cross(forward, up) where up = -gravity. Using
-    // cross(gravity, forward) gives the same vector and keeps A/D mapped
-    // to the camera's screen-right regardless of which way gravity points.
-    const right = TMP_V2.crossVectors(gravityDir, fwd).normalize();
+    const right = TMP_V2.copy(camRight);
 
     const wishDir = TMP_V3.set(0, 0, 0);
     if (input.forward) wishDir.add(fwd);
